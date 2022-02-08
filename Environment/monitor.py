@@ -37,9 +37,3 @@ def check_and_return(self, cal: Calculation):
             else:
                 self.pc_avai_group.add(carAgent)
                 # print(carAgent.order)
-
-def release_avai_p(self):
-    for item in self.flight_group:
-        if item.leave_t == self.time:
-            self.list_avai_p.append(item.park_p)
-            self.list_avai_passenger.append(item.passenger_p)
