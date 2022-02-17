@@ -1,5 +1,5 @@
 # from excel_trans import *
-from .Dijkstra import *
+from Dijkstra import *
 import numpy as np
 
 '''

@@ -1,7 +1,10 @@
 import pygame          # 导入模块
 from pygame.locals import *    # 导入pygame一些常用的函数和常量
+import pandas as pd
+# openpyxl index starts from 1
+from openpyxl import load_workbook
 from Controller import solution_random
-from Model import agent, flight, task
+from Model import agent
 from Common import parameter as para
 from Map import excel_trans
 import random
@@ -14,18 +17,15 @@ info = pygame.font.SysFont('rachana', 25)
 class Env_Base:
     def __init__(self, bus_number, package_car_number, advance_time):
         # attributes about environment map information
-        self.list_far_p = None
-        self.list_near_p = None
-        self.list_path = None
-        self.list_bus_p = None
-        self.list_avai_p = None
-        self.list_avai_passenger = None
-        self.package_center = None
-        self.map_info = None
+        self.path_file = open(para.path_file, "r")
+        self.map_info = excel_trans.Map_info(eval(self.path_file.readline()))
+        self.task_data = load_workbook(para.task_data)
+        self.task_sheets = self.task_data.sheetnames
+        # TODO: from  0 to i to train all sheets
+        self.task = self.task_data[self.task_sheets[0]]
 
         # uncompleted task group
-        self.now_btg = []
-        self.now_ptg = []
+        self.wait_queue = []
 
         self.bus_group = pygame.sprite.Group()
         self.pc_group = pygame.sprite.Group()
@@ -34,34 +34,19 @@ class Env_Base:
 
         self.bus_n = bus_number
         self.pc_n = package_car_number
-
-        self.time = 0
         # the advanced time to make dispatching decision
-        self.advance_t = advance_time
-        # start_t to end_t : the time period to generate flights
-        # self.start_t = start_t
-        # self.end_t = end_t
+        self.advance_t = para.advance_time
+        # the time of starting simulation
+        self.time = self.task.cell(2, 2) - self.advance_t
+        self.first_index = 2
+
 
     def init_env(self):
-
-        self.create_map()
-        # when the simulation needs visualization, the following two functions will be rewritten.
         self.create_bus_pc()
 
     # create the map and path for the environment
     def create_map(self):
-        my_map = excel_trans.Excel_to_List(para.map_file, para.airport_name, para.rows, para.cols)
-        list_position = my_map.excel_to_pathlist()
-
-        self.list_path = list_position[0]
-        self.list_near_p = list_position[1]
-        self.list_far_p = list_position[2]
-        self.list_bus_p = list_position[3]
-        self.list_avai_p = self.list_near_p + self.list_far_p
-        self.package_center = list_position[4]
-        self.list_avai_passenger = copy.deepcopy(self.list_near_p)
-
-        self.map_info = excel_trans.Map_info(list_position)
+        pass
 
     # create bus and pc for the environment
     def create_bus_pc(self):
@@ -82,31 +67,27 @@ class Env_Base:
             self.pc_avai_group.add(locals()['pc' + str(j)])
 
     def step(self):
-        # create task for every flight
-        if len(self.flight_table[self.time]) > 0:
-            # print(self.time)
-            for flight in self.flight_table[self.time]:
-                self.create_task(flight)
-            # print(self.bus_task_group)
-            # print(self.pc_task_group)
-            for bus_task in self.now_btg:
-                # RL algorithm makes decision on choosing car and time
-                bus_task.get_solve(solution_random.schedule_bus(self.bus_avai_group))
-                # print(bus_task.p_start, bus_task.p_pass, bus_task.p_end)
-                path = self.map_info.get_map_info(bus_task.p_start, bus_task.p_pass, bus_task.p_end)
+        for i in range(self.first_index, self.task.max_row+1):
+            if self.task.cell(i,2).value-self.time == self.advance_t:
+                self.wait_queue.append(i)
+            else:
+                self.first_index = i
+                break
+        # TODO: consider the condition when there is no available vehicle to do tasks
+        for item in self.wait_queue:
+            if self.task.cell(item, 7).value == 'shuttle':
+                vehicle = solution_random.schedule_bus(self.bus_avai_group)
+            else:
+                vehicle = solution_random.schedule_pc(self.pc_avai_group)
+            path = self.map_info.get_map_info(vehicle.get_place, eval(self.task.cell(item,5).value), eval(self.task.cell(item,6).value))
+            vehicle.get_schedule(path)
+            # TODO:write a controller to decide the time of vehicle departure
+            vehicle.t_start = self.time + None
+            self.wait_queue.remove(item)
 
-                bus_task.car.get_schedule(path)
-                bus_task.car.t_start = self.time + self.advance_t
-                self.now_btg.remove(bus_task)
-
-            for pc_task in self.now_ptg:
-                pc_task.get_solve(solution_random.schedule_pc(self.pc_avai_group))
-                # print(pc_task.p_start, pc_task.p_pass, pc_task.p_end)
-                path = self.map_info.get_map_info(pc_task.p_start, pc_task.p_pass, pc_task.p_end)
-                # print(path)
-                pc_task.car.get_schedule(path)
-                pc_task.car.t_start = self.time + self.advance_t
-                self.now_ptg.remove(pc_task)
+    def get_observation(self):
+        # TODO: wait for writing
+        pass
 
 
 

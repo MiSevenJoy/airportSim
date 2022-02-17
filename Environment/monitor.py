@@ -1,4 +1,5 @@
-def check_and_return(self, cal: Calculation):
+def check_and_return( ):
+    # TODO: wait for writing
     '''
     if the car has finished its task at clock A
     the car can be redispatched at clock A+1,if it didn't get dispatched, it would return at clock A+2

@@ -1,4 +1,4 @@
-from .Path_Calculation import Calculation
+from Path_Calculation import Calculation
 import xlrd
 import xlwt
 # the index of xls starts from 1 when using openpyxl
@@ -72,7 +72,14 @@ class Excel_to_List:
                         list_bus_p.append([i, j])
                     elif(color == para.RED).all():
                         package_center.append([i, j])
-        return list_path, list_near_p, list_far_p, list_bus_p, package_center
+        f = open(para.path_file, "w")
+        f.writelines(str(list_path)+'\n')
+        f.writelines(str(list_near_p)+'\n')
+        f.writelines(str(list_far_p) + '\n')
+        f.writelines(str(list_bus_p) + '\n')
+        f.writelines(str(package_center) + '\n')
+        f.close()
+        # return list_path, list_near_p, list_far_p, list_bus_p, package_center
 
     def excel_array(self):
         self.open_excel()
@@ -120,10 +127,9 @@ class Map_info:
                 if i == j:
                     self.sheet_path.write(i, j, label = None)
                     # self.sheet_distance.write(i, j, label = str(0))
-
                 else:
                     path = Calcu.calculation_2point(str(self.destination_list[i]), str(self.destination_list[j]),path_list[0])[0]
-                    self.sheet_path.write(i, j, label = str(path))
+                    self.sheet_path.write(i, j, label=str(path))
                     self.sheet_path.write(j, i, label=str(path[::-1]))
                     # self.sheet_distance.write(i, j, label = str(distance))
                     # self.sheet_distance.write(j, i, label=str(distance))
@@ -145,4 +151,9 @@ class Map_info:
         distance = len(path)-1
 
         return path, distance
+
+
+if __name__ == '__main__':
+    my_map = Excel_to_List(para.map_file, para.airport_name, para.rows, para.cols)
+    my_map.excel_to_pathlist()
 

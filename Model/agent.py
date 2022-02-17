@@ -4,6 +4,7 @@ import numpy as np
 # should in common
 from Common import parameter as para
 
+
 # basic agent class statement without visualization
 class Agent_Base(pygame.sprite.Sprite):
     def __init__(self, place, sort):
@@ -30,6 +31,11 @@ class Agent_Base(pygame.sprite.Sprite):
     # get the position of agent
     def get_place(self):
         return self.place
+    def reset(self):
+        self.state = 0
+        self.t_start = -1
+        self.order = 0
+        self.schedule = []
 
     def get_schedule(self, list_schedule):
         self.schedule_length = len(list_schedule)
@@ -43,14 +49,10 @@ class Agent_Base(pygame.sprite.Sprite):
             self.state = 2
         if self.state == 2:
             self.place = self.schedule[self.order+1].tolist()
-            # self.change_rect(d_move)
             self.order += 1
             if self.place == self.last_p:
-                self.state = 0
+                self.reset()
                 self.t_end = time
-                self.t_start = -1
-                self.order = 0
-                self.schedule=[]
 
 class Agent(Agent_Base):
     def __init__(self, image_name, place, sort):
@@ -75,8 +77,5 @@ class Agent(Agent_Base):
             # self.change_rect(d_move)
             self.order += 1
             if self.place == self.last_p:
-                self.state = 0
+                self.reset()
                 self.t_end = time
-                self.t_start = -1
-                self.order = 0
-                self.schedule = []
