@@ -1,6 +1,7 @@
-from Path_Calculation import Calculation
+from Map.Path_Calculation import Calculation
 import xlrd
 import xlwt
+from xlutils.copy import copy as xl_copy
 # the index of xls starts from 1 when using openpyxl
 from Common import parameter as para
 import numpy as np
@@ -97,63 +98,66 @@ class Excel_to_List:
 class Map_info:
     def __init__(self, path_list):
         # get all destination that shuffle bus or luggage van may go to
-        self.destination_list = path_list[1]+path_list[2]+path_list[3]+path_list[4]
+        self.path_list = eval(path_list[0])
+        self.destination_list = eval(path_list[1])+eval(path_list[2])+eval(path_list[3])+eval(path_list[4])
         # check whether the map-information excel file has generated
 
         if os.path.exists(para.map_info_file):
             self.book = xlrd.open_workbook(para.map_info_file)
             self.sheet_path = self.book.sheet_by_index(0)
-            # self.sheet_distance = self.book.sheet_by_index(1)
+            self.sheet_distance = self.book.sheet_by_index(1)
         else:
             self.book = None
             self.sheet_path = None
-            # self.sheet_distance = None
-            self.count_map_info(path_list)
+            self.sheet_distance = None
+            self.count_map_info()
 
 
-    def count_map_info(self, path_list):
+    def count_map_info(self):
         # format translation:translate the excel to path list
         # Trans = Excel_to_List(para.map_file, para.airport_name)
         # path_list = Trans.excel_to_pathlist()
 
-        Calcu = Calculation(path_list[0])
-        self.book = xlwt.Workbook()
+        Calcu = Calculation(self.path_list)
+        # self.book = xlwt.Workbook()
+        self.book = xlrd.open_workbook(para.map_info_file)
+        # wb = xl_copy(self.book)
         self.sheet_path = self.book.add_sheet(para.airport_name + ' path')
-        # self.sheet_distance = self.book.add_sheet(para.airport_name + 'distance')
+        # self.sheet_path = self.book.sheet_by_index(0)
+        self.sheet_distance = self.book.add_sheet(para.airport_name + 'distance')
         total_number = len(self.destination_list)
         # count the all distance between two points by traversing
         for i in range(total_number):
             for j in range(i, total_number):
                 if i == j:
                     self.sheet_path.write(i, j, label = None)
-                    # self.sheet_distance.write(i, j, label = str(0))
+                    self.sheet_distance.write(i, j, label = 0)
                 else:
-                    path = Calcu.calculation_2point(str(self.destination_list[i]), str(self.destination_list[j]),path_list[0])[0]
+                    path, distance = Calcu.calculation_2point(str(self.destination_list[i]), str(self.destination_list[j]))
                     self.sheet_path.write(i, j, label=str(path))
                     self.sheet_path.write(j, i, label=str(path[::-1]))
-                    # self.sheet_distance.write(i, j, label = str(distance))
-                    # self.sheet_distance.write(j, i, label=str(distance))
+                    # distance = len(eval(self.sheet_path.cell_value(i, j)))
+                    self.sheet_distance.write(i, j, label = distance)
+                    self.sheet_distance.write(j, i, label= distance)
         self.book.save(para.map_info_file)  # save the excel document
 
     def get_map_info(self, start, via_point, end):
+        distance1 = self.get_2p_info(start, via_point)
+        distance2 = self.get_2p_info(via_point, end)
+        distance = distance1 + distance2
+        return distance1, distance
+
+    def get_2p_info(self, start, end):
         # assume the excel file and sheets has been opened yet
         index_start = self.destination_list.index(start)
-        index_via_point = self.destination_list.index(via_point)
         index_end = self.destination_list.index(end)
-        # distance = int(float(self.sheet_distance.cell_value(index_start, index_via_point))) + int(float(self.sheet_distance.cell_value\
-        # (index_via_point, index_end)))
-
-        # delete the repetitive point
-        first_list = eval(self.sheet_path.cell_value(index_start, index_via_point))
-        # delete the repeated location
-        first_list.pop()
-        path = first_list + eval(self.sheet_path.cell_value(index_via_point, index_end))
-        distance = len(path)-1
-
-        return path, distance
+        distance = int(self.sheet_distance.cell_value(index_start, index_end))
+        return distance
 
 
-if __name__ == '__main__':
-    my_map = Excel_to_List(para.map_file, para.airport_name, para.rows, para.cols)
-    my_map.excel_to_pathlist()
+# if __name__ == '__main__':
+#     path_file = open(para.path_file, "r")
+#     path_list = path_file.readlines()
+#     my_map_info = Map_info(path_list)
+#     my_map_info.count_map_info()
 

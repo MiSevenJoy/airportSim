@@ -44,15 +44,15 @@ class Data_Process:
 
         return t_data
 
-    def extract_refer_delay_t(self,data):
-        new_t_data = np.array(data.copy())
-        delete_list = []
-        for i in range(len(new_t_data)):
-            if abs(new_t_data[i,0] - new_t_data[i,1])>para.delay_t:
-                delete_list.append(i)
-        # new_t_data = pd.DataFrame(np.delete(new_t_data, delete_list, 0))
-        new_t_data = np.delete(new_t_data, delete_list, 0)
-        return new_t_data
+    # def extract_refer_delay_t(self,data):
+    #     new_t_data = np.array(data.copy())
+    #     delete_list = []
+    #     for i in range(len(new_t_data)):
+    #         if abs(new_t_data[i,0] - new_t_data[i,1])>para.delay_t:
+    #             delete_list.append(i)
+    #     # new_t_data = pd.DataFrame(np.delete(new_t_data, delete_list, 0))
+    #     new_t_data = np.delete(new_t_data, delete_list, 0)
+    #     return new_t_data
 
     def write_to_excel(self, path, data_write, page, start_row, start_col):
         if not os.path.exists(path):
@@ -172,10 +172,13 @@ class Data_Process:
         """
         number = len(data_array)
         luggage_van_list = np.random.randint(1, 2, (number, 1), dtype=int)
-        shuttle_list = np.random.randint(1, 3, (number, 1), dtype=int)
+        shuttle_list = np.zeros([number, 1], dtype=int)
+        for i in range(number):
+            if data_array[i, 3] > 26:
+                shuttle_list[i] = 1
         data_array = np.insert(data_array, [5], shuttle_list, axis=1)
         data_array = np.insert(data_array, [6], luggage_van_list, axis=1)
-        flight_data = data_array[np.argsort(data_array[:, 0])]
+        flight_data = data_array[np.argsort(data_array[:, 1])]
         flight_data = pd.DataFrame(flight_data)
         flight_data.columns = ['scheduled departure/arrive time', 'actual departure/arrive time', 'type','aircraft park'
                   'ing lot', 'passenger departure/arrival port', 'shuttle number needed', 'luggage van  number needed']
@@ -183,11 +186,10 @@ class Data_Process:
 
     def generate_tasks(self, flight_data, aircraft_p_list, passenger_p_list, package_center):
         task_data = pd.DataFrame(columns=['flight number', 'scheduled departure/arrive time', 'actual departure/arrive '
-                                          'time', 'origin', 'via point', 'end', 'type(shuttle/luggage van)'])
+                                          'time', 'type', 'via point', 'end', 'type(shuttle/luggage van)'])
         for i in range(len(flight_data)):
             task_data_list = [i]
-            task_data_list.extend(flight_data.iloc[i, 0:2].values.tolist())
-            task_data_list.append(None)
+            task_data_list.extend(flight_data.iloc[i, 0:3].values.tolist())
             task_data_list_copy = copy.deepcopy(task_data_list)
             shuttle_path = [passenger_p_list[flight_data.iloc[i, 4]], aircraft_p_list[flight_data.iloc[i, 3]]]
             luggage_van_path = [package_center[0], aircraft_p_list[flight_data.iloc[i, 3]]]
@@ -203,19 +205,19 @@ class Data_Process:
                 task_data.loc[len(task_data)] = task_data_list
             for k in range(flight_data.iloc[i, 6]):
                 task_data.loc[len(task_data)] = task_data_list_copy
+
         return task_data
 
     def data_preparation(self, aircraft_p_list, passenger_p_list, package_center):
         # extract time data from flight table
         data1 = self.extract_time_data()
         # delete the flights that delays/ ahead of time too much
-        data2 = self.extract_refer_delay_t(data1)
         # grouping referring to the time of starting using the aircraft parking lot
-        data3_list = self.grouping(data2)
+        data2_list = self.grouping(np.array(data1.copy()))
         i = 1
-        for data in data3_list:
-            data4 = self.dispatch_parking_lot(data)
-            data_flight = self.generate_vehicles(data4)
+        for data in data2_list:
+            data3 = self.dispatch_parking_lot(data)
+            data_flight = self.generate_vehicles(data3)
             data_task = self.generate_tasks(data_flight, aircraft_p_list, passenger_p_list, package_center)
             self.write_to_excel(para.flight_data, data_flight, para.sheet_name+'_'+str(i), 0, 0)
             self.write_to_excel(para.task_data, data_task, para.sheet_name+'_'+str(i), 0, 0)
@@ -224,5 +226,8 @@ class Data_Process:
 
 
 if __name__ =='__main__':
+    path_file = open(para.path_file, "r")
+    path_list = path_file.readlines()
     my_data_process = Data_Process()
-    my_data_process.data_preparation(path_list[1]+path_list[2], path_list[1], path_list[4])
+    my_data_process.data_preparation(eval(path_list[1])+eval(path_list[2]), eval(path_list[1]), eval(path_list[4]))
+    path_file.close()

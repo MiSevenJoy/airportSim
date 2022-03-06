@@ -7,52 +7,39 @@ from Common import parameter as para
 
 # basic agent class statement without visualization
 class Agent_Base(pygame.sprite.Sprite):
-    def __init__(self, place, sort):
+    def __init__(self, name, place):
         super().__init__()
+        self.name = name
         self.place = place
         # state = 0 ==> free
-        # state = 1 ==> scheduled but not working
-        # state = 2 ==> scheduled and working
+        # state = 1 ==> scheduled and working
+        # state = 2 ==> reached the end
         self.state = 0
-        self.t_start = -1
         self.t_end = -1
-
-        # sort = 0 ==> Shuttle car
-        # sort = 1 ==> Package car
-        # sort = 2 ==> landmark
-        self.sort = sort
-
-        self.schedule = []
-        self.schedule_length = None
         self.last_p = None
         # the agent's order in the whole schedule
-        self.order = 0
+
+    def __repr__(self):
+        return self.name+str(self.place)
 
     # get the position of agent
+    @ property
     def get_place(self):
         return self.place
-    def reset(self):
-        self.state = 0
-        self.t_start = -1
-        self.order = 0
-        self.schedule = []
 
-    def get_schedule(self, list_schedule):
-        self.schedule_length = len(list_schedule)
-        self.last_p = list_schedule[self.schedule_length - 1]
-        self.schedule = np.array(list_schedule)
+    def get_dispatch(self, t_end, p_end):
+        self.t_end = t_end
+        self.state = 1
+        self.last_p = p_end
+        # print('arrive at clock :' + str(self.t_end))
 
     def update(self, time, *args):
         # time : the system clock
         # t_start : the scheduled time to start to work
-        if self.t_start == time:
+        if self.state == 1 and time == self.t_end:
             self.state = 2
-        if self.state == 2:
-            self.place = self.schedule[self.order+1].tolist()
-            self.order += 1
-            if self.place == self.last_p:
-                self.reset()
-                self.t_end = time
+            self.place = self.last_p
+
 
 class Agent(Agent_Base):
     def __init__(self, image_name, place, sort):
