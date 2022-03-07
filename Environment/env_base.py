@@ -146,40 +146,40 @@ class Env_Base(gym.Env):
         global item
         del_list = []
         for item in self.wait_queue:
-            if len(self.bus_avai_group) > 0:
-                if self.task.cell(item, 7).value == 'shuttle':
-                    vehicle = sr.schedule_vehicle(self.bus_avai_group)
-                    # print(vehicle)
-                    reward = self.env_react(item, self.bus_avai_group, self.bus_busy_group, vehicle)
-                    sr.train(reward)
-                    del_list.append(item)
-            else:
-                print('no available shuttle.')
-            if len(self.pc_avai_group) > 0:
-                if self.task.cell(item, 7).value != 'shuttle':
-                    vehicle = sr.schedule_vehicle(self.pc_avai_group)
-                    # print(vehicle)
-                    reward = self.env_react(item, self.pc_avai_group, self.pc_busy_group, vehicle)
-                    sr.train(reward)
-                    del_list.append(item)
-            else:
-                print('no available luggage van.')
+            # if len(self.bus_avai_group) > 0:
+            #     if self.task.cell(item, 7).value == 'shuttle':
+            #         vehicle = sr.schedule_vehicle(self.bus_avai_group)
+            #         # print(vehicle)
+            #         reward = self.env_react(item, self.bus_avai_group, self.bus_busy_group, vehicle)
+            #         sr.train(reward)
+            #         del_list.append(item)
+            # else:
+            #     print('no available shuttle.')
+            # if len(self.pc_avai_group) > 0:
+            #     if self.task.cell(item, 7).value != 'shuttle':
+            #         vehicle = sr.schedule_vehicle(self.pc_avai_group)
+            #         # print(vehicle)
+            #         reward = self.env_react(item, self.pc_avai_group, self.pc_busy_group, vehicle)
+            #         sr.train(reward)
+            #         del_list.append(item)
+            # else:
+            #     print('no available luggage van.')
 
-            # if len(self.bus_avai_group) + len(self.pc_avai_group)==0:
-            #     print('now there is not free agv')
-            #     break
-            # # once one task is dealt, DQN update once.
-            # elif self.task.cell(item, 7).value == 'shuttle' and len(self.bus_avai_group) > 0:
-            #     vehicle = sr.schedule_vehicle(self.bus_avai_group)
-            #     # print(vehicle)
-            #     reward = self.env_react(item, self.bus_avai_group, self.bus_busy_group, vehicle)
-            #     sr.train(reward)
-            #     del_list.append(item)
-            # elif self.task.cell(item, 7).value != 'shuttle' and len(self.pc_avai_group) > 0:
-            #     vehicle = sr.schedule_vehicle(self.pc_avai_group)
-            #     reward = self.env_react(item, self.pc_avai_group, self.pc_busy_group, vehicle)
-            #     sr.train(reward)
-            #     del_list.append(item)
+            if len(self.bus_avai_group) + len(self.pc_avai_group)==0:
+                print('now there is not free agv')
+                break
+            # once one task is dealt, DQN update once.
+            elif self.task.cell(item, 7).value == 'shuttle' and len(self.bus_avai_group) > 0:
+                vehicle = sr.schedule_vehicle(self.bus_avai_group)
+                # print(vehicle)
+                reward = self.env_react(item, self.bus_avai_group, self.bus_busy_group, vehicle)
+                sr.train(reward)
+                del_list.append(item)
+            elif self.task.cell(item, 7).value != 'shuttle' and len(self.pc_avai_group) > 0:
+                vehicle = sr.schedule_vehicle(self.pc_avai_group)
+                reward = self.env_react(item, self.pc_avai_group, self.pc_busy_group, vehicle)
+                sr.train(reward)
+                del_list.append(item)
 
         for del_element in del_list:
             self.wait_queue.remove(del_element)
@@ -191,9 +191,8 @@ class Env_Base(gym.Env):
         # update the dispatched vehicles' states
         self.bus_busy_group.update(self.time)
         self.pc_busy_group.update(self.time)
-        if self.time < 2000:
-            print(self.time)
-            print('avai agv n: ' + str(len(self.bus_avai_group) + len(self.pc_avai_group)))
+        print(self.time)
+        print('avai agv n: ' + str(len(self.bus_avai_group) + len(self.pc_avai_group)))
         # print("now the clock is"+str(self.time))
         self.time += 1
         print('\n')
